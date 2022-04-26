@@ -1,10 +1,13 @@
 #include <IRremote.h>
+#include "Arduino.h"
 #include "DFRobotDFPlayerMini.h"
 #include "SoftwareSerial.h"
+#include <Servo.h>
 
 int RECEIVER_PIN = 12;
 int pino_led = 8;
 int pino_buzzer = 7;
+int pino_rele = 4;
 
 //---------------------------------------------------------------------------------
 //      Áudio
@@ -24,14 +27,23 @@ int selecionada = 0;
 
 //---------------------------------------------------------------------------------
 
+Servo myservo;
+
+int pos = 0;
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
   
   pinMode(pino_led, OUTPUT);
   pinMode(pino_buzzer, OUTPUT);
+  pinMode(pino_rele, OUTPUT);
+
+  delay(500);
   
   IrReceiver.begin(RECEIVER_PIN);
+
+  delay(500);
 
   //-------------------------------------------------------
   //  define Audio
@@ -40,12 +52,16 @@ void setup() {
   myDFPlayer.begin(mySoftwareSerial); //inicia módulo MP3, essa linha ficava dentro da Serial
   
   myDFPlayer.setTimeOut(500); //Timeout serial 500ms
-  myDFPlayer.volume(30); 
-  myDFPlayer.EQ(0); //Equalizacao normal  
+  myDFPlayer.volume(80); 
+  myDFPlayer.EQ(0); //Equalizacao normal
 
   resultado = myDFPlayer.readFileCounts();  
-  Serial.println("quantidade áudios"); 
-  Serial.println(resultado); 
+  Serial.print("Numero de arquivos no cartao SD: ");
+  Serial.println(resultado);
+  //-------------------------------------------------------
+  
+  myservo.attach(9);
+  
 }
 
 void loop() {
@@ -89,13 +105,45 @@ void loop() {
        case 24:  
            Serial.println("Toca áudio");
            myDFPlayer.play(2);
-           break;  
+           break; 
+
+       case 94:  
+           Serial.println("Apaga relê");
+           digitalWrite(pino_rele, LOW);
+           break;
+
+       case 8:  
+           Serial.println("Acende relê");
+           digitalWrite(pino_rele, HIGH);
+           break; 
+
+       case 28:  
+           Serial.println("Abre porta");
+
+           for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
+             // in steps of 1 degree
+             myservo.write(pos);              // tell servo to go to position in variable 'pos'
+             delay(15);                       // waits 15ms for the servo to reach the position
+           }     
+                 
+           break; 
+
+       case 90:  
+           Serial.println("Fecha porta");
+
+           for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
+             myservo.write(pos);              // tell servo to go to position in variable 'pos'
+             delay(15);                       // waits 15ms for the servo to reach the position
+           }
+             
+           break;                                                        
            
        default:   
            Serial.println("Ooops, wrong key!");
            IrReceiver.begin(RECEIVER_PIN);
+
     }
-    delay(1000);
+    delay(100);
     IrReceiver.resume();
   }
 }
